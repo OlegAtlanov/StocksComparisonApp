@@ -43,6 +43,12 @@ namespace StocksComparisonApp.Infrastructure.Services.Stock
 
             if (getResult != null)
             {
+                if (getResult.Children().Count() < 7)
+                {
+                    // Here we check that data from client has more then 7 days info
+                    return null;
+                }
+
                 // We take 7 rows for the current week
                 var stocksForCurrentWeek = getResult.Children().Take(7);
 
