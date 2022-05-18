@@ -1,8 +1,10 @@
 ﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Moq;
 using RichardSzalay.MockHttp;
 using StocksComparisonApp.App_Start.AutoMapperConfig;
+using StocksComparisonApp.Infrastructure.DbContext;
 using StocksComparisonApp.Infrastructure.Services.Stock;
 using System;
 using System.IO;
@@ -42,8 +44,20 @@ namespace StocksComparisonApp.Tests.MockedService
             mockFactory.Setup(_ => _.CreateClient(It.IsAny<string>())).Returns(client);
 
             var autoMapper = new MapperConfiguration(cfg => cfg.AddProfile<AutoMapperProfile>());
+            
+            //create In Memory Database
+            var options = new DbContextOptionsBuilder<StockContext>()
+                .UseInMemoryDatabase(databaseName: "StockDB")
+                .Options;
 
-            return new StockService(mockFactory.Object, autoMapper.CreateMapper(), config);
+            // Also we can mock it like this.
+            // But using InMemory does not allow to mock context without explicit call of UseInMemoryDatabase
+
+            //var mockSet = new Mock<DbSet<Stock>>();
+            //var mockContext = new Mock<StockContext>();
+            //mockContext.Setup(m => m.Stocks).Returns(mockSet.Object);
+
+            return new StockService(mockFactory.Object, autoMapper.CreateMapper(), config, new StockContext(options));
         }
     }
 }

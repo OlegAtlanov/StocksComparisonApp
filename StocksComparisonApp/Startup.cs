@@ -7,11 +7,15 @@ using StocksComparisonApp.Infrastructure.Services.Comparison;
 using StocksComparisonApp.Infrastructure.Services.Stock;
 using StocksComparisonApp.Middleware;
 using System;
+using Microsoft.EntityFrameworkCore;
+using StocksComparisonApp.Infrastructure.DbContext;
 
 namespace StocksComparisonApp
 {
     public class Startup
     {
+        private const string CommonStock = "SPY";
+
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
@@ -31,6 +35,7 @@ namespace StocksComparisonApp
             services.AddScoped<IStockService, StockService>();
             services.AddScoped<IComparisonStocksService, ComparisonStocksService>();
             services.AddSwaggerGen();
+            services.AddDbContext<StockContext>(opt => opt.UseInMemoryDatabase("StockDB"));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -52,10 +57,32 @@ namespace StocksComparisonApp
             // global error handler
             app.UseMiddleware<ErrorHandlerMiddleware>();
 
+            // Add pre-defined data
+            AddPreDefinedData(app.ApplicationServices);
+
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
             });
+        }
+
+        private static void AddPreDefinedData(IServiceProvider serviceProvider)
+        {
+            using var scope = serviceProvider.CreateScope();
+
+            var context = scope.ServiceProvider.GetService<StockContext>();
+            var stockService = scope.ServiceProvider.GetService<IStockService>();
+
+            var result = stockService?.GetStocksBySymbolAsync(CommonStock).Result;
+
+            if (result != null)
+            {
+                if (context != null)
+                {
+                    context.Stocks.AddRange(result);
+                    context.SaveChanges();
+                }
+            }
         }
     }
 }

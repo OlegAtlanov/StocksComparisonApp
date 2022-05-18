@@ -1,35 +1,43 @@
-﻿using StocksComparisonApp.Infrastructure.Services.Stock;
+﻿using StocksComparisonApp.Infrastructure.DbContext;
 using StocksComparisonApp.Models.Result;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 
 namespace StocksComparisonApp.Infrastructure.Services.Comparison
 {
     public class ComparisonStocksService : IComparisonStocksService
     {
-        private readonly IStockService _stockService;
+        private readonly StockContext _context;
 
         private const string CommonStock = "SPY";
-        public ComparisonStocksService(IStockService stockService)
+        public ComparisonStocksService(StockContext stockContext)
         {
-            _stockService = stockService;
+            _context = stockContext;
         }
 
         public async Task<IEnumerable<ComparisonResult>> GetComparisonWithSpyStockAsync(string stockSymbol)
         {
-            var requestedStocks = await _stockService.GetStocksBySymbolAsync(stockSymbol);
+            var requestedStocks = await _context.Stocks
+                .Where(s => string.Equals(s.Name, stockSymbol, StringComparison.CurrentCultureIgnoreCase)).ToListAsync();
 
-            if (requestedStocks == null)
+            if (!requestedStocks.Any())
             {
-                return null;
+                // Throwing an error like an example to show how error handler works.
+                // In real life application, I would create custom exception and then in error handler handle it as an 4** error.
+                throw new Exception(
+                    $"There is no such data for {stockSymbol} in DB. Please call Post method to store {stockSymbol} stock.");
             }
 
-            var spyStocks = await _stockService.GetStocksBySymbolAsync(CommonStock);
+            var spyStocks = await _context.Stocks
+                .Where(s => string.Equals(s.Name, CommonStock, StringComparison.CurrentCultureIgnoreCase)).ToListAsync();
 
-            if (spyStocks == null)
+            if (!spyStocks.Any())
             {
-                return null;
+                throw new Exception(
+                    $"There is no such data for {CommonStock} in DB. Please call Post method to store {CommonStock} stock.");
             }
 
             var priceAtTheBeginningOfTheWeek = requestedStocks.Last().High;
@@ -45,13 +53,13 @@ namespace StocksComparisonApp.Infrastructure.Services.Comparison
                     GivenStock =
                         string.Format($"{PerformComparison(priceAtTheBeginningOfTheWeek, requestedStock.High):0.0#}%"),
                     SpyStock = string.Format(
-                        $"{PerformComparison(priceAtTheBeginningOfTheWeekSpy, spyStocks.FirstOrDefault(s => s.Date == requestedStock.Date).High):0.0#}%")
+                        $"{PerformComparison(priceAtTheBeginningOfTheWeekSpy, spyStocks.FirstOrDefault(s => s.Date == requestedStock.Date)!.High):0.0#}%")
                 });
             }
 
             return list;
         }
 
-        private decimal PerformComparison(decimal initialPrice, decimal currentPrice) => ((currentPrice / initialPrice) * 100) - 100;
+        private decimal PerformComparison(decimal initialPrice, decimal currentPrice) => currentPrice / initialPrice * 100 - 100;
     }
 }

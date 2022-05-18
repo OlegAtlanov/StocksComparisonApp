@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using StocksComparisonApp.Models.Result;
+using System.Collections.Generic;
 using System.Threading.Tasks;
-using StocksComparisonApp.Models.Result;
 
 namespace StocksComparisonApp.Infrastructure.Services.Comparison
 {

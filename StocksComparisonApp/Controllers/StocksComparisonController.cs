@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
 using StocksComparisonApp.Infrastructure.Services.Comparison;
+using System.Threading.Tasks;
 
 namespace StocksComparisonApp.Controllers
 {
